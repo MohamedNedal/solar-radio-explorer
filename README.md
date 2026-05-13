@@ -7,7 +7,7 @@ students working on solar radio bursts.
 ## Supported instruments (v0.1)
 
 Ground-based: e-CALLISTO, LOFAR / I-LOFAR (Solar KSP dynspec FITS), Nançay Decameter
-Array (NDA), ORFEES, NenuFAR (BST/Pulsar HDF5), OVSA / EOVSA.
+Array (NDA), ORFEES, NenuFAR (BST/HDF5), OVSA / EOVSA.
 
 Space-based: Parker Solar Probe / FIELDS (RFS LFR+HFR), Solar Orbiter / RPW (TNR+HFR),
 STEREO / Waves (SWAVES), WIND / Waves (RAD1+RAD2+TNR).
