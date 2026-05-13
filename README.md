@@ -15,6 +15,10 @@ STEREO / Waves (SWAVES), WIND / Waves (RAD1+RAD2+TNR).
 v0.1 assumes the data files are already on disk. Remote fetching from CDAWeb,
 LOFAR LTA, soleil.i4ds.ch, etc. is planned for v0.2.
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/747499c6-03c5-4f04-9a4a-ff69cf0b643d" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f9051d88-beb5-4a5c-bd06-d8fc47e8d2f7" />
+
+
 ## Installation
 
 ```bash
