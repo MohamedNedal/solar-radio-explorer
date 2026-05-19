@@ -200,15 +200,23 @@ else:
                     st.code(step, language="python")
 
         with vis_tab:
-            v1, v2, v3 = st.columns(3)
+            v1, v2, v3, v4 = st.columns(4)
             cmap = v1.selectbox(
                 "Colour map",
                 ["inferno", "viridis", "plasma", "magma", "cividis",
                  "Greys_r", "hot", "RdBu_r", "Spectral_r"],
                 index=0,
             )
-            log_freq = v2.checkbox("Log frequency", value=False)
-            rasterised = v3.checkbox("Rasterise image (smaller PDF)", value=True)
+            intensity_norm = v2.selectbox(
+                "Intensity scale",
+                ["linear", "log", "symlog"],
+                index=0,
+                help="Use 'log' for raw flux that spans several decades; "
+                     "'symlog' for background-subtracted data containing "
+                     "both positive and negative values.",
+            )
+            log_freq = v3.checkbox("Log frequency", value=False)
+            rasterised = v4.checkbox("Rasterise image (smaller PDF)", value=True)
 
             clip_pct = st.slider("Display percentile clip", 0.0, 100.0,
                                  value=(1.0, 99.0), step=0.5)
@@ -219,7 +227,8 @@ else:
 
             fig = ds.plot(
                 cmap=cmap, vmin_pct=clip_pct[0], vmax_pct=clip_pct[1],
-                log_freq=log_freq, title=title, rasterized=rasterised,
+                log_freq=log_freq, norm=intensity_norm,
+                title=title, rasterized=rasterised,
             )
             st.pyplot(fig, use_container_width=True)
 
@@ -230,7 +239,8 @@ else:
             if st.button("Build figure for download"):
                 buf = io.BytesIO()
                 fig = ds.plot(cmap=cmap, vmin_pct=clip_pct[0], vmax_pct=clip_pct[1],
-                              log_freq=log_freq, title=title, rasterized=rasterised)
+                              log_freq=log_freq, norm=intensity_norm,
+                              title=title, rasterized=rasterised)
                 fig.savefig(buf, format=fmt, dpi=dpi, bbox_inches="tight")
                 buf.seek(0)
                 st.download_button(

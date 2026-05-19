@@ -19,7 +19,7 @@ import numpy as np
 
 from sre.readers.base import resolve_path
 from sre.spectrum import DynamicSpectrum
-from sre.utils import cdf_epoch_to_datetime64, ensure_mhz
+from sre.utils import cdf_epoch_to_datetime64, cdf_var_unit
 
 
 def read(path, prefer: str = "flux", **_) -> DynamicSpectrum:
@@ -31,10 +31,13 @@ def read(path, prefer: str = "flux", **_) -> DynamicSpectrum:
     zvars = set(info.zVariables + info.rVariables)
 
     times = cdf_epoch_to_datetime64(cdf.varget("Epoch"))
-    freq_khz = np.asarray(cdf.varget("FREQUENCY"), dtype=float)
-    if freq_khz.ndim == 2:
-        freq_khz = freq_khz[0]
-    freqs = ensure_mhz(freq_khz, "kHz")
+    freqs = np.asarray(cdf.varget("FREQUENCY"), dtype=float)
+    if freqs.ndim == 2:
+        freqs = freqs[0]
+    # The L3 product manual says kHz, but CDAWeb releases of sta/stb_l3_wav_*
+    # have shipped with the FREQUENCY UNITS attribute set to 'Hz'. Use the
+    # CDF metadata as source of truth rather than the docstring.
+    freq_unit = cdf_var_unit(cdf, "FREQUENCY", default="kHz")
 
     data_var = None
     if prefer == "flux" and "PSD_FLUX" in zvars:
@@ -54,6 +57,7 @@ def read(path, prefer: str = "flux", **_) -> DynamicSpectrum:
         data=data.T,
         times=times,
         frequencies=freqs,
+        freq_unit=freq_unit,
         instrument=f"{sc}/SWAVES",
         unit=unit,
         metadata={"data_variable": data_var},

@@ -16,7 +16,7 @@ import numpy as np
 
 from sre.readers.base import resolve_path
 from sre.spectrum import DynamicSpectrum
-from sre.utils import cdf_epoch_to_datetime64, ensure_mhz
+from sre.utils import cdf_epoch_to_datetime64, cdf_var_unit
 
 
 def read(path, sensor: str = "AGC1", product: str = "auto", **_) -> DynamicSpectrum:
@@ -39,11 +39,15 @@ def read(path, sensor: str = "AGC1", product: str = "auto", **_) -> DynamicSpect
 
     times = cdf_epoch_to_datetime64(cdf.varget("Epoch"))
 
-    freq_khz = np.asarray(cdf.varget("FREQUENCY"), dtype=float)
+    freqs = np.asarray(cdf.varget("FREQUENCY"), dtype=float)
     # Some releases store frequency per record; collapse to 1-D.
-    if freq_khz.ndim == 2:
-        freq_khz = freq_khz[0]
-    freqs = ensure_mhz(freq_khz, "kHz")
+    if freqs.ndim == 2:
+        freqs = freqs[0]
+
+    # Pull axis/intensity units from VAR_ATTRS rather than hard-coding; the
+    # RPW L3 manual currently writes 'kHz', but earlier releases used 'Hz'.
+    freq_unit = cdf_var_unit(cdf, "FREQUENCY", default="kHz")
+    intensity_unit = cdf_var_unit(cdf, "PSD_SFU", default="SFU")
 
     data = np.squeeze(np.asarray(cdf.varget("PSD_SFU"), dtype=np.float32))
 
@@ -51,8 +55,9 @@ def read(path, sensor: str = "AGC1", product: str = "auto", **_) -> DynamicSpect
         data=data.T,   # (n_time, n_freq) -> (n_freq, n_time)
         times=times,
         frequencies=freqs,
+        freq_unit=freq_unit,
         instrument=f"SolO/RPW {product.upper()}",
-        unit="SFU",
+        unit=intensity_unit,
         metadata={"sensor": sensor, "product": product.upper()},
     )
 

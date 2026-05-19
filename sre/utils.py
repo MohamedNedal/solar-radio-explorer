@@ -19,6 +19,21 @@ def cdf_epoch_to_datetime64(epoch_array) -> np.ndarray:
     return pd.to_datetime(dt).to_numpy().astype("datetime64[ns]")
 
 
+def cdf_var_unit(cdf, varname: str, default: str) -> str:
+    """Return the UNITS / UNIT attribute of a CDF variable, falling back to `default`.
+
+    Robust to releases that omit the attribute or use slight variants.
+    """
+    try:
+        attrs = cdf.varattsget(varname)
+    except Exception:
+        return default
+    for key in ("UNITS", "UNIT", "Units", "unit"):
+        if key in attrs and attrs[key]:
+            return str(attrs[key]).strip()
+    return default
+
+
 def ensure_mhz(freq: np.ndarray, unit: str) -> np.ndarray:
     u = unit.lower().strip()
     if u in ("mhz", "megahertz"):

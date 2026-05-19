@@ -20,9 +20,10 @@ from sre import processing as P
 class DynamicSpectrum:
     data: np.ndarray                       # shape (n_freq, n_time)
     times: np.ndarray                      # 1-D, dtype datetime64[ns] or numpy float seconds
-    frequencies: np.ndarray                # 1-D, MHz
+    frequencies: np.ndarray                # 1-D, in `freq_unit`
     instrument: str = "unknown"
     unit: str = "arbitrary"
+    freq_unit: str = "MHz"                 # populated from the file when available
     metadata: dict = field(default_factory=dict)
     history: list[str] = field(default_factory=list)
 
@@ -113,7 +114,7 @@ class DynamicSpectrum:
             "instrument": self.instrument,
             "shape (freq, time)": self.shape,
             "time range (UTC)": f"{t0} → {t1}",
-            "frequency range (MHz)": f"{f0:.3f} – {f1:.3f}",
+            f"frequency range ({self.freq_unit})": f"{f0:.3f} – {f1:.3f}",
             "unit": self.unit,
             "history": list(self.history),
             **{f"meta::{k}": v for k, v in self.metadata.items()},
