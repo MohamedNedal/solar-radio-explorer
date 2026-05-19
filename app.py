@@ -170,7 +170,11 @@ else:
             st.markdown("**Background subtraction**")
             bg_method = st.selectbox(
                 "Method",
-                ["quiet_window", "median", "running_median", "constant"],
+                ["quiet_window", "median", "running_median", "constant",
+                 "percentile_ratio"],
+                help=("percentile_ratio divides each channel by the median of "
+                      "its bottom-N percentile samples (quiet-sun normalisation); "
+                      "it returns a ratio rather than a difference."),
             )
             bg_kwargs: dict = {}
             if bg_method == "quiet_window":
@@ -187,6 +191,11 @@ else:
                 value = st.number_input("Subtract value",
                                         value=float(np.nanmedian(ds.data)))
                 bg_kwargs["value"] = float(value)
+            elif bg_method == "percentile_ratio":
+                percentile = st.slider("Percentile cutoff (%)",
+                                       min_value=0.5, max_value=50.0,
+                                       value=5.0, step=0.5)
+                bg_kwargs["percentile"] = float(percentile)
             if st.button("Apply background subtraction"):
                 try:
                     ss.ds = ds.subtract_background(method=bg_method, **bg_kwargs)

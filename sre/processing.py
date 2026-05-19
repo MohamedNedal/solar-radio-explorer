@@ -6,6 +6,7 @@ DynamicSpectrum class wraps each one and appends a history entry.
 """
 from __future__ import annotations
 
+import warnings
 from typing import Optional, Sequence
 
 import numpy as np
@@ -76,11 +77,17 @@ def subtract_background(data: np.ndarray, times: Optional[np.ndarray] = None,
     """Remove instrumental and quiescent Sun background from a dynamic spectrum.
 
     Methods:
-      'quiet_window'  : subtract per-channel median computed over (t_quiet[0], t_quiet[1]).
-                        Falls back to the global per-channel median if t_quiet is None.
-      'median'        : subtract per-channel median of the full spectrum (robust default).
-      'running_median': subtract a running per-channel median with window `width` samples.
-      'constant'      : subtract a single scalar (`value`, defaults to global median).
+      'quiet_window'    : subtract per-channel median computed over (t_quiet[0], t_quiet[1]).
+                          Falls back to the global per-channel median if t_quiet is None.
+      'median'          : subtract per-channel median of the full spectrum (robust default).
+      'running_median'  : subtract a running per-channel median with window `width` samples.
+      'constant'        : subtract a single scalar (`value`, defaults to global median).
+      'percentile_ratio': DIVIDE each channel by the median of its bottom-`percentile`
+                          samples (quiet-sun normalisation). Returns the ratio
+                          data / background, not a difference. Use `percentile`
+                          (default 5.0) to set the cutoff. Channels whose background
+                          comes out zero or NaN are replaced with the median of the
+                          valid backgrounds (or 1.0 if none) and a warning is raised.
     """
     if method == "quiet_window":
         t_quiet = kwargs.get("t_quiet")
@@ -106,6 +113,37 @@ def subtract_background(data: np.ndarray, times: Optional[np.ndarray] = None,
     if method == "constant":
         value = kwargs.get("value", float(np.nanmedian(data)))
         return data - value
+
+    if method == "percentile_ratio":
+        percentile = float(kwargs.get("percentile", 5.0))
+        if not 0.0 < percentile < 100.0:
+            raise ValueError("percentile must be in (0, 100)")
+
+        # NaN-aware threshold per channel so input NaNs don't poison the cut.
+        thresholds = np.nanpercentile(data, percentile, axis=1)
+        bg = np.empty(data.shape[0], dtype=float)
+        for i, (row, p) in enumerate(zip(data, thresholds)):
+            if not np.isfinite(p):
+                bg[i] = np.nan
+                continue
+            sel = row[(row <= p) & np.isfinite(row)]
+            bg[i] = np.median(sel) if sel.size else np.nan
+
+        bad = ~np.isfinite(bg) | (bg == 0)
+        if bad.any():
+            good = bg[~bad]
+            replacement = float(np.median(good)) if good.size else 1.0
+            warnings.warn(
+                f"percentile_ratio: {int(bad.sum())} channel(s) had zero/NaN "
+                f"background; replaced with {replacement:.6g}.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            bg = np.where(bad, replacement, bg)
+
+        bg = bg[:, np.newaxis]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return data / bg
 
     raise ValueError(f"unknown background method {method!r}")
 
